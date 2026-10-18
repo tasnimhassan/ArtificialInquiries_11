@@ -1,0 +1,173 @@
+@prefix dcterms: <http://purl.org/dc/terms/> .
+@prefix owl: <http://www.w3.org/2002/07/owl#> .
+@prefix rdf: <http://www.w3.org/1999/02/22-rdf-syntax-ns#> .
+@prefix rdfs: <http://www.w3.org/2000/01/rdf-schema#> .
+@prefix vs: <http://www.w3.org/2003/06/sw-vocab-status/ns#> .
+@prefix o: <http://omeka.org/s/vocabs/o#> .
+@prefix skos: <http://www.w3.org/2004/02/skos/core#> .
+@prefix ma: <http://www.w3.org/ns/ma-ont#>.
+@prefix artinq: <https://humanum-p8.fr/omk_artificialinquiries/onto/artinq#> .
+
+<https://humanum-p8.fr/omk_artificialinquiries/onto/artinq#> a owl:Ontology ;
+    dcterms:title "Artificial Inquiries" .
+
+artinq:Participant a rdfs:Class ;
+    rdfs:label "Participant" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:Reflexion a rdfs:Class ;
+    rdfs:label "Réflexion" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:Observation a rdfs:Class ;
+    rdfs:label "Observation" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:Dimension a rdfs:Class ;
+    rdfs:label "Dimension" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:Exemple a rdfs:Class ;
+    rdfs:label "Exemple" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:Exercice a rdfs:Class ;
+    rdfs:label "Exercice" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:Media a rdfs:Class ;
+    rdfs:label "Média" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:login a rdf:Property ;
+    rdfs:label "login" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:profession a rdf:Property ;
+    rdfs:label "profession" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:llmUtilise a rdf:Property ;
+    rdfs:label "LLM utilisé" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:dateSaisie a rdf:Property ;
+    rdfs:label "date de saisie" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:typeReflexion a rdf:Property ;
+    rdfs:label "type de réflexion (EVOLUTION ou CONSTANCE)" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:question a rdf:Property ;
+    rdfs:label "question" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:texte a rdf:Property ;
+    rdfs:label "texte" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:version a rdf:Property ;
+    rdfs:label "version" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:resume a rdf:Property ;
+    rdfs:label "résumé" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:periode a rdf:Property ;
+    rdfs:label "période (AVANT, PENDANT ou APRES)" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:dateObservation a rdf:Property ;
+    rdfs:label "date de l'observation" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:libelle a rdf:Property ;
+    rdfs:label "libellé" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:extraitConversation a rdf:Property ;
+    rdfs:label "extrait de conversation" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:urlConversation a rdf:Property ;
+    rdfs:label "URL de la conversation" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:numero a rdf:Property ;
+    rdfs:label "numéro d'exercice" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:titreExercice a rdf:Property ;
+    rdfs:label "titre de l'exercice" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:pageVademecum a rdf:Property ;
+    rdfs:label "page du vademecum" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:fichier a rdf:Property ;
+    rdfs:label "fichier" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:typeMime a rdf:Property ;
+    rdfs:label "type MIME" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:hasReflexion a rdf:Property ;
+    rdfs:label "a comme réflexion" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:hasObservation a rdf:Property ;
+    rdfs:label "a comme observation" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:hasDimension a rdf:Property ;
+    rdfs:label "a comme dimension" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:hasExemple a rdf:Property ;
+    rdfs:label "a comme exemple" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:hasExercice a rdf:Property ;
+    rdfs:label "a comme exercice" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
+artinq:hasMedia a rdf:Property ;
+    rdfs:label "a comme média" ;
+    rdfs:domain o:Resource ;
+    vs:term_status "experimental" .
+
