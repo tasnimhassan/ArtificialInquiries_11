@@ -61,5 +61,15 @@ et de la **traçabilité** (exemples documentés, liens vers les conversations L
 ```
 ArtificialInquiries_11/
 ├── README.md
-└── diagram_class.md
+├── diagram_class.md
+├── artificial_inquiries.ttl      # vocabulaire (préfixe artinq)
+├── resource-template/            # modèles de ressources Omeka S (JSON)
+│   ├── artinq_Participant.json
+│   ├── artinq_Reflexion.json
+│   ├── artinq_Observation.json
+│   ├── artinq_Dimension.json
+│   ├── artinq_Exemple.json
+│   ├── artinq_Exercice.json
+│   └── artinq_Media.json
+└── omk.sql                       # export de la base (à ajouter après les tests)
 ```
