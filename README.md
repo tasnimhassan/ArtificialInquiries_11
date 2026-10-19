@@ -71,5 +71,5 @@ ArtificialInquiries_11/
 │   ├── artinq_Exemple.json
 │   ├── artinq_Exercice.json
 │   └── artinq_Media.json
-└── omk.sql                       # export de la base (à ajouter après les tests)
+└── omk.sql                       # export de la base 
 ```
