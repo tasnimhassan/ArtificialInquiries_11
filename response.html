@@ -67,7 +67,7 @@ body.locked main{display:none}
 
   <div id="p-omk">
     <h2>Connexion Omeka S</h2>
-    <p class="lead"> <strong></strong> </p>
+    <p class="lead"> <strong>tes</strong> .</p>
     <input id="base" type="hidden">
     <input id="omail" type="hidden">
     <label for="kid">key identity</label>
@@ -79,12 +79,12 @@ body.locked main{display:none}
 
   <div id="p-gh" hidden>
     <h2>Connexion GitHub</h2>
-    <p class="lead">La page s’ouvre avec ton compte GitHub. Pour créer, modifier ou supprimer, ajoute ensuite tes clés API dans l’onglet Omeka S.</p>
+    <p class="lead"></p>
     <div class="row"><button class="main" id="gh" hidden>Se connecter avec GitHub</button></div>
   </div>
 
   <div class="row"><span id="idstate" class="lead">Identité : non connecté.</span><button id="idout" hidden>Se déconnecter</button></div>
-  <p class="soon">Les clés restent dans cet onglet du navigateur et disparaissent quand tu le fermes.</p>
+  <p class="soon"></p>
 </details>
 <div id="msg" role="status"></div>
 
@@ -236,6 +236,7 @@ $("#fresh").onclick = resetForm;
 $("#login").onclick = async () => {
   say("Connexion en cours…");
   try {
+    await api("/users", "GET", null, {per_page: 1}); // refusé par Omeka si les clés sont fausses
     await init(); await load();
     sessionStorage.setItem("omk", JSON.stringify({b: $("#base").value, i: $("#kid").value, c: $("#kcred").value, e: $("#omail").value}));
     S.auth = "local"; unlock();
