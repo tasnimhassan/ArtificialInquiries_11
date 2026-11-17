@@ -63,6 +63,7 @@ body.locked main{display:none}
   <div class="tabs" role="tablist">
     <button type="button" class="tab on" id="tab-omk" role="tab">Omeka S</button>
     <button type="button" class="tab" id="tab-gh" role="tab">GitHub</button>
+    <button type="button" class="tab" id="tab-gg" role="tab">Google</button>
   </div>
 
   <div id="p-omk">
@@ -79,12 +80,18 @@ body.locked main{display:none}
 
   <div id="p-gh" hidden>
     <h2>Connexion GitHub</h2>
-    <p class="lead"></p>
+    <p class="lead">La page s’ouvre avec ton compte GitHub. Pour créer, modifier ou supprimer, ajoute ensuite tes clés API dans l’onglet Omeka S.</p>
     <div class="row"><button class="main" id="gh" hidden>Se connecter avec GitHub</button></div>
   </div>
 
+  <div id="p-gg" hidden>
+    <h2>Connexion Google</h2>
+    <p class="lead">La page s’ouvre avec ton compte Google. Pour créer, modifier ou supprimer, ajoute ensuite tes clés API dans l’onglet Omeka S.</p>
+    <div class="row"><button class="main" id="gg" hidden>Se connecter avec Google</button></div>
+  </div>
+
   <div class="row"><span id="idstate" class="lead">Identité : non connecté.</span><button id="idout" hidden>Se déconnecter</button></div>
-  <p class="soon"></p>
+  <p class="soon">e</p>
 </details>
 <div id="msg" role="status"></div>
 
@@ -266,9 +273,10 @@ $("#logout").onclick = () => {
   const auth = firebase.auth();
   const fail = e => { bar.textContent = "Connexion impossible : " + e.message; };
   const go = prov => auth.signInWithPopup(prov).catch(fail);
-  const ids = ["gh"];
+  const ids = ["gh", "gg"];
   ids.forEach(i => $("#" + i).hidden = false);
     $("#gh").onclick = () => go(new firebase.auth.GithubAuthProvider());
+  $("#gg").onclick = () => go(new firebase.auth.GoogleAuthProvider());
     $("#idout").onclick = () => auth.signOut();
     auth.onAuthStateChanged(async u => {
     ids.forEach(i => $("#" + i).hidden = !!u); $("#idout").hidden = !u;
@@ -286,7 +294,7 @@ $("#logout").onclick = () => {
 // L’adresse de l’API est choisie automatiquement : Omeka local si la page est ouverte sur localhost, base commune sinon.
 document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b));
-  ["omk", "gh"].forEach(k => $("#p-" + k).hidden = ("tab-" + k) !== b.id);
+  ["omk", "gh", "gg"].forEach(k => $("#p-" + k).hidden = ("tab-" + k) !== b.id);
 });
 
 lock();
