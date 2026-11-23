@@ -1,0 +1,317 @@
+<!doctype html>
+<html lang="fr">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ex11 Tracking Shifts – Mes réflexions</title>
+<style>
+:root{--bg:#f3f5f7;--card:#fff;--ink:#1b2430;--mute:#5b6775;--line:#cbd3dc;--acc:#2347a8;--accink:#fff;--bad:#b3261e;--ok:#17653a;color-scheme:light}
+@media (prefers-color-scheme:dark){:root{--bg:#10151c;--card:#1a212b;--ink:#e8edf2;--mute:#9aa7b5;--line:#33404f;--acc:#7da2ff;--accink:#0c1630;--bad:#ff8a80;--ok:#7bd69a;color-scheme:dark}}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font:16px/1.5 system-ui,-apple-system,"Segoe UI",sans-serif}
+header{padding:1.5rem 1rem 0.5rem;max-width:68rem;margin:auto}
+h1{font:600 1.7rem/1.2 Georgia,"Times New Roman",serif;margin:0 0 .25rem}
+h2{font:600 1.2rem/1.3 Georgia,serif;margin:0 0 .75rem}
+header p{margin:0;color:var(--mute);max-width:60ch}
+main{max-width:68rem;margin:auto;padding:1rem;display:grid;gap:1rem;grid-template-columns:minmax(0,22rem) minmax(0,1fr);align-items:start}
+@media (max-width:760px){main{grid-template-columns:1fr}}
+section,details{background:var(--card);border:1px solid var(--line);border-radius:8px;padding:1rem}
+details{max-width:68rem;margin:1rem auto 0}
+summary{cursor:pointer;font-weight:600}
+label{display:block;margin:.6rem 0 .2rem;font-size:.9rem;color:var(--mute)}
+input,select,textarea{width:100%;font:inherit;color:var(--ink);background:var(--bg);border:1px solid var(--line);border-radius:6px;padding:.5rem}
+textarea{min-height:8rem;resize:vertical}
+:focus-visible{outline:2px solid var(--acc);outline-offset:2px}
+button{font:inherit;border:1px solid var(--line);background:var(--card);color:var(--ink);border-radius:6px;padding:.45rem .8rem;cursor:pointer}
+button.main{background:var(--acc);color:var(--accink);border-color:var(--acc);font-weight:600}
+button.del{color:var(--bad)}
+.row{display:flex;gap:.5rem;flex-wrap:wrap;margin-top:.9rem}
+#msg{max-width:68rem;margin:.75rem auto 0;padding:0 1rem;min-height:1.5rem}
+.err{color:var(--bad)}.ok{color:var(--ok)}
+.item{border-top:1px solid var(--line);padding:.8rem 0}
+.item:first-of-type{border-top:0}
+.item h3{margin:0;font-size:1rem}
+.meta{color:var(--mute);font-size:.85rem}
+.item p{margin:.3rem 0 .5rem;white-space:pre-wrap}
+#idbar{margin:.5rem 0;display:flex;gap:.5rem;flex-wrap:wrap;align-items:center}
+#idbar span{flex:1;min-width:12rem;color:var(--mute)}
+body.locked main{display:none}
+.soon{color:var(--mute);font-size:.9rem;margin:.75rem 0 0}
+
+:root{--nav:#0e5a56;--navink:#fff;--head:#0e5a56;--acc:#0e5a56;--accink:#fff}
+@media (prefers-color-scheme:dark){:root{--nav:#5fd1c7;--navink:#06201e;--head:#5fd1c7;--acc:#5fd1c7;--accink:#06201e}}
+#conn summary{font:700 2rem/1.2 Georgia,"Times New Roman",serif;color:var(--head);list-style:none;cursor:pointer}
+#conn summary::-webkit-details-marker{display:none}
+.lead{color:var(--mute);margin:.4rem 0}
+.tabs{display:flex;gap:.6rem;flex-wrap:wrap;margin:1rem 0 1.25rem}
+.tab{flex:1;min-width:7rem;padding:.9rem 1rem;border-radius:999px;border:1px solid var(--line);background:var(--card);color:var(--head);font-size:1.05rem}
+.tab.on{background:var(--nav);color:var(--navink);border:2px solid var(--ink)}
+#conn h2{font:700 1.5rem/1.3 system-ui,-apple-system,"Segoe UI",sans-serif;color:var(--head);margin:1rem 0 .4rem}
+#conn label{font-weight:700;color:var(--ink);font-size:1.05rem;margin:1rem 0 .4rem}
+#conn input{padding:.85rem 1rem;border-radius:6px;background:var(--card)}
+#conn .main{background:var(--nav);color:var(--navink);border-color:var(--nav);font-weight:700;border-radius:999px;padding:.8rem 1.6rem}
+</style>
+</head>
+<body>
+<header>
+  <h1>Ex11 – Tracking Shifts</h1>
+  <p>Notez comment votre pratique des LLM a évolué et ce qui est resté constant. Chaque réponse est enregistrée comme un item « Réflexion » dans Omeka S.</p>
+</header>
+
+<details id="conn" open>
+  <summary>Connexion</summary>
+  <div class="tabs" role="tablist">
+    <button type="button" class="tab on" id="tab-omk" role="tab">Omeka S</button>
+    <button type="button" class="tab" id="tab-gh" role="tab">GitHub</button>
+    <button type="button" class="tab" id="tab-gg" role="tab">Google</button>
+    <button type="button" class="tab" id="tab-cas" role="tab">CAS Paris 8</button>
+  </div>
+
+  <div id="p-omk">
+    <h2>Connexion Omeka S</h2>
+    <p class="lead">Saisis <strong>tes</strong> clés API Omeka (dans Omeka S → Utilisateurs → ton compte → Modifier → onglet « Clés API »).</p>
+    <input id="base" type="hidden">
+    <input id="omail" type="hidden">
+    <label for="kid">Identifiant de clé (key_identity)</label>
+    <input id="kid" autocomplete="off">
+    <label for="kcred">Clé secrète (key_credential)</label>
+    <input id="kcred" type="password" autocomplete="off">
+    <div class="row"><button class="main" id="login">Se connecter</button><button id="logout">Se déconnecter</button></div>
+  </div>
+
+  <div id="p-gh" hidden>
+    <h2>Connexion GitHub</h2>
+    <p class="lead">La page s’ouvre avec ton compte GitHub. Pour créer, modifier ou supprimer, ajoute ensuite tes clés API dans l’onglet Omeka S.</p>
+    <div class="row"><button class="main" id="gh" hidden>Se connecter avec GitHub</button></div>
+  </div>
+
+  <div id="p-cas" hidden>
+    <h2>Connexion CAS Paris 8</h2>
+    <p class="lead">Non disponible dans cette version : le CAS demande un serveur d’authentification fourni par l’université, que cette page n’a pas.</p>
+    <div class="row"><button class="main" disabled>Continuer</button></div>
+  </div>
+
+  <div id="p-gg" hidden>
+    <h2>Connexion Google</h2>
+    <p class="lead">La page s’ouvre avec ton compte Google. Pour créer, modifier ou supprimer, ajoute ensuite tes clés API dans l’onglet Omeka S.</p>
+    <div class="row"><button class="main" id="gg" hidden>Se connecter avec Google</button></div>
+  </div>
+
+  <div class="row"><span id="idstate" class="lead">Identité : non connecté.</span><button id="idout" hidden>Se déconnecter</button></div>
+  <p class="soon">Les clés restent dans cet onglet du navigateur et disparaissent quand tu le fermes. La connexion par CAS n’est pas disponible dans cette version.</p>
+</details>
+<div id="msg" role="status"></div>
+
+<main>
+  <section>
+    <h2 id="ftitle">Nouvelle réflexion</h2>
+    <p id="writenote" class="lead"></p>
+    <form id="form" autocomplete="off">
+      <label for="title">Titre</label><input id="title" required>
+      <label for="type">Type</label>
+      <select id="type"><option value="EVOLUTION">Évolution</option><option value="CONSTANCE">Constance</option></select>
+      <label for="question">Question</label><input id="question">
+      <label for="texte">Votre réponse, avec des exemples précis</label><textarea id="texte" required></textarea>
+      <label for="date">Date de saisie</label><input id="date" type="date">
+      <label for="version">Version</label><input id="version" type="number" min="1" value="1">
+      <div class="row"><button class="main" type="submit" id="save">Enregistrer</button><button type="button" id="fresh">Nouvelle réflexion</button></div>
+    </form>
+  </section>
+  <section>
+    <h2>Toutes les réflexions de la base commune</h2>
+    <div id="list"><p class="meta">Connectez-vous pour afficher les réflexions.</p></div>
+  </section>
+</main>
+
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
+<script>
+// À remplir avec les valeurs du projet Firebase (Paramètres du projet, Vos applications). Ce sont des identifiants publics.
+const FIREBASE_CONFIG = {apiKey: "AIzaSyDXNUQJdxmvxKc6lO2I_U434aI4e6BMRL8", authDomain: "artinq-ex11.firebaseapp.com", projectId: "artinq-ex11", appId: "1:742632912023:web:4a36ad123d29b3af79a5d2"};
+
+const $ = s => document.querySelector(s);
+// Adresse du Worker Cloudflare (relais vers l’Omeka commun). À remplacer par la tienne, par exemple https://artinq-relais.TON-COMPTE.workers.dev
+const WORKER = "https://artinq-relais.tiha31931.workers.dev";
+const PROXY = (location.hostname !== "localhost" && !WORKER.includes("VOTRE")) ? WORKER : "";
+const Q = {EVOLUTION: "How has your practice evolved?", CONSTANCE: "What aspects of your practice have remained consistent?"};
+const S = {p: {}, cls: 0, tpl: 0, editing: null, ready: false};
+// Chaque champ essaie d’abord le terme de la base commune, puis celui de la base locale.
+const CAND = {title: ["dcterms:title"], date: ["artinq:date", "artinq:dateSaisie"], type: ["artinq:type", "artinq:typeReflexion"], question: ["artinq:description", "artinq:question"], texte: ["artinq:texte"], version: ["artinq:version"]};
+const FIELDS = {};
+
+function setWriteMode(on) {
+  document.querySelectorAll("#form input, #form select, #form textarea, #form button").forEach(el => el.disabled = !on);
+  $("#writenote").textContent = on ? "" : "Lecture seule. Ajoute tes clés API (onglet Omeka S) pour enregistrer, modifier ou supprimer.";
+}
+const lock = () => document.body.classList.add("locked");
+const unlock = () => document.body.classList.remove("locked");
+function say(t, cls) { const m = $("#msg"); m.textContent = t; m.className = cls || ""; }
+
+function endpoint(path, params = {}) {
+  const u = new URL((PROXY || $("#base").value.trim()).replace(/\/$/, "") + path);
+  for (const [k, v] of Object.entries(params)) u.searchParams.set(k, v);
+  if (!PROXY && $("#kid").value) { u.searchParams.set("key_identity", $("#kid").value); u.searchParams.set("key_credential", $("#kcred").value); }
+  return u;
+}
+
+async function api(path, method = "GET", body, params) {
+  const opt = {method};
+  const hd = {};
+  if (body) { hd["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
+  if (PROXY) { hd["X-Omeka-Key-Identity"] = $("#kid").value; hd["X-Omeka-Key-Credential"] = $("#kcred").value; }
+  if (Object.keys(hd).length) opt.headers = hd;
+  let r;
+  try { r = await fetch(endpoint(path, params), opt); }
+  catch (e) { throw new Error("la requête vers " + path + " est bloquée (réseau, CORS ou adresse)"); }
+  if (!r.ok) throw new Error(r.status + " " + r.statusText + (r.status === 403 || r.status === 401 ? " (clés refusées ou droits insuffisants)" : ""));
+  const t = await r.text();
+  return t ? JSON.parse(t) : null;
+}
+
+async function init() {
+  S.p = {}; let cls = null;
+  for (let page = 1; page <= 10; page++) {
+    const r = await api("/properties", "GET", null, {per_page: 100, page});
+    r.forEach(p => S.p[p["o:term"]] = p["o:id"]);
+    if (r.length < 100) break;
+  }
+  for (let page = 1; page <= 10 && !cls; page++) {
+    const r = await api("/resource_classes", "GET", null, {per_page: 100, page});
+    cls = r.find(c => c["o:term"] === "artinq:Reflexion");
+    if (r.length < 100) break;
+  }
+  const tpls = await api("/resource_templates", "GET", null, {per_page: 100});
+  const tpl = tpls.find(t => t["o:label"] === "Artificial Inquiries – Réflexion") || tpls.find(t => t["o:label"].endsWith("Réflexion"));
+  if (!cls || !tpl || !S.p["artinq:texte"]) throw new Error("Vocabulaire artinq ou modèle « Réflexion » introuvable dans cet Omeka S.");
+  S.cls = cls["o:id"]; S.tpl = tpl["o:id"]; S.ready = true;
+  for (const [id, c] of Object.entries(CAND)) FIELDS[id] = c.find(t => S.p[t]);
+}
+
+const val = (it, term) => term && (it[term] && it[term][0] && it[term][0]["@value"]) || "";
+
+function payload() {
+  const o = {"o:resource_class": {"o:id": S.cls}, "o:resource_template": {"o:id": S.tpl}, "o:is_public": true};
+  for (const [id, term] of Object.entries(FIELDS)) {
+    const v = $("#" + id).value.trim();
+    if (v && term) o[term] = [{type: "literal", property_id: S.p[term], "@value": v}];
+  }
+  return o;
+}
+
+// READ
+async function load() {
+  const items = await api("/items", "GET", null, {resource_template_id: S.tpl, sort_by: "id", sort_order: "desc", per_page: 50});
+  const box = $("#list"); box.textContent = "";
+  if (!items.length) { box.innerHTML = '<p class="meta">Aucune réflexion pour l’instant. Remplissez le formulaire pour créer la première.</p>'; return; }
+  items.forEach(it => {
+    const d = document.createElement("div"); d.className = "item";
+    const h = document.createElement("h3"); h.textContent = val(it, "dcterms:title") || "(sans titre)";
+    const m = document.createElement("div"); m.className = "meta";
+    m.textContent = [val(it, FIELDS.type), val(it, FIELDS.date), "version " + (val(it, FIELDS.version) || "1")].join(" – ");
+    const p = document.createElement("p"); p.textContent = val(it, FIELDS.texte);
+    const b = document.createElement("div"); b.className = "row";
+    const e = document.createElement("button"); e.textContent = "Modifier"; e.onclick = () => edit(it);
+    const x = document.createElement("button"); x.textContent = "Supprimer"; x.className = "del"; x.onclick = () => remove(it);
+    if (S.auth === "local") b.append(e, x);
+    d.append(h, m, p, b); box.append(d);
+  });
+}
+
+function edit(it) {
+  S.editing = it["o:id"];
+  for (const [id, term] of Object.entries(FIELDS)) $("#" + id).value = term ? val(it, term) : "";
+  if (!$("#type").value) $("#type").value = "EVOLUTION";
+  $("#ftitle").textContent = "Modifier la réflexion " + S.editing;
+  $("#save").textContent = "Enregistrer les modifications";
+  scrollTo({top: 0, behavior: "smooth"});
+}
+
+function resetForm() {
+  S.editing = null; $("#form").reset();
+  $("#question").value = Q.EVOLUTION; $("#date").value = new Date().toISOString().slice(0, 10);
+  $("#ftitle").textContent = "Nouvelle réflexion"; $("#save").textContent = "Enregistrer";
+}
+
+// CREATE / UPDATE
+$("#form").onsubmit = async ev => {
+  ev.preventDefault();
+  if (!S.ready) return say("Connectez-vous d’abord.", "err");
+  try {
+    if (S.editing) await api("/items/" + S.editing, "PUT", payload());
+    else await api("/items", "POST", payload());
+    say(S.editing ? "Réflexion modifiée." : "Réflexion enregistrée.", "ok");
+    resetForm(); await load();
+  } catch (e) { say("Échec de l’enregistrement : " + e.message, "err"); }
+};
+
+// DELETE
+async function remove(it) {
+  if (!confirm("Supprimer « " + (val(it, "dcterms:title") || it["o:id"]) + " » ?")) return;
+  try { await api("/items/" + it["o:id"], "DELETE"); say("Réflexion supprimée.", "ok"); await load(); }
+  catch (e) { say("Échec de la suppression : " + e.message, "err"); }
+}
+
+$("#type").onchange = () => { const q = $("#question"); if (!q.value || Object.values(Q).includes(q.value)) q.value = Q[$("#type").value]; };
+$("#fresh").onclick = resetForm;
+
+$("#login").onclick = async () => {
+  if (!$("#kid").value.trim() || !$("#kcred").value.trim()) return say("Renseigne tes deux clés API.", "err");
+  say("Vérification des clés auprès d’Omeka S…");
+  try { await api("/users", "GET", null, {per_page: 1}); } // refusé par Omeka si les clés sont fausses
+  catch (e) { S.auth = null; lock(); setWriteMode(false); return say("Clés refusées : " + e.message + ".", "err"); }
+  try {
+    S.auth = "local";
+    await init(); await load();
+    sessionStorage.setItem("omk", JSON.stringify({b: $("#base").value, i: $("#kid").value, c: $("#kcred").value}));
+    unlock(); setWriteMode(true);
+    $("#conn").open = false;
+    say("Clés API validées : tu peux créer, modifier et supprimer. L’identité du compte n’est pas vérifiée, seules les clés sont contrôlées.", "ok");
+  } catch (e) { S.auth = null; lock(); setWriteMode(false); say("Clés valides, mais les réflexions n’ont pas pu être chargées : " + e.message + ".", "err"); }
+};
+$("#logout").onclick = () => {
+  sessionStorage.removeItem("omk"); $("#kid").value = ""; $("#kcred").value = ""; $("#omail").value = "";
+  S.auth = null; lock(); setWriteMode(false); S.ready = false; $("#list").innerHTML = '<p class="meta">Connectez-vous pour afficher les réflexions.</p>';
+  $("#conn").open = true; say("Déconnecté.");
+};
+
+// Identité : Google et GitHub via Firebase Authentication
+(function () {
+  const bar = $("#idstate");
+  if (typeof firebase === "undefined" || !FIREBASE_CONFIG.apiKey) { bar.textContent = "Identité : connexion Google et GitHub non configurée, seule la connexion par clés Omeka S est active."; return; }
+  firebase.initializeApp(FIREBASE_CONFIG);
+  const auth = firebase.auth();
+  const fail = e => { bar.textContent = "Connexion impossible : " + e.message; };
+  const go = prov => auth.signInWithPopup(prov).catch(fail);
+  const ids = ["gh", "gg"];
+  ids.forEach(i => $("#" + i).hidden = false);
+    $("#gh").onclick = () => go(new firebase.auth.GithubAuthProvider());
+  $("#gg").onclick = () => go(new firebase.auth.GoogleAuthProvider());
+    $("#idout").onclick = () => auth.signOut();
+    auth.onAuthStateChanged(async u => {
+    ids.forEach(i => $("#" + i).hidden = !!u); $("#idout").hidden = !u;
+    bar.textContent = u ? "Identité : " + (u.displayName || u.email || "connecté") : "Identité : non connecté.";
+    if (u) {
+      if (S.auth === "local") return;
+      const pid = (u.providerData[0] && u.providerData[0].providerId) || "firebase";
+      const nom = pid === "github.com" ? "GitHub" : "Google";
+      S.auth = pid; setWriteMode(false); unlock();
+      try { if (!S.ready) await init(); await load(); say("Connecté avec " + nom + " : lecture seule. Ajoute tes clés API (onglet Omeka S) pour créer, modifier ou supprimer.", "ok"); }
+      catch (e) { $("#conn").open = true; say("Connecté avec " + nom + ", mais la liste n’a pas pu être chargée : " + e.message + ". Ajoute tes clés API dans l’onglet Omeka S.", "err"); }
+    } else if (S.auth !== "local") { S.auth = null; lock(); }
+  });
+})();
+
+// L’adresse de l’API est choisie automatiquement : Omeka local si la page est ouverte sur localhost, base commune sinon.
+document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
+  document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b));
+  ["omk", "gh", "gg", "cas"].forEach(k => $("#p-" + k).hidden = ("tab-" + k) !== b.id);
+});
+
+lock(); setWriteMode(false);
+$("#base").value = location.hostname === "localhost" ? "http://localhost/omeka-s-4.2.1/omeka-s/api" : "https://humanum-p8.fr/omk_artificialinquiries/api";
+
+try { const s = JSON.parse(sessionStorage.getItem("omk") || "null"); if (s) { $("#kid").value = s.i; $("#kcred").value = s.c; $("#omail").value = s.e || ""; $("#login").click(); } } catch (e) {}
+resetForm();
+</script>
+</body>
+</html>
