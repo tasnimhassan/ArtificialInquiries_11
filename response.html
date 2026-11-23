@@ -64,6 +64,7 @@ body.locked main{display:none}
     <button type="button" class="tab on" id="tab-omk" role="tab">Omeka S</button>
     <button type="button" class="tab" id="tab-gh" role="tab">GitHub</button>
     <button type="button" class="tab" id="tab-gg" role="tab">Google</button>
+    <button type="button" class="tab" id="tab-cas" role="tab">CAS Paris 8</button>
   </div>
 
   <div id="p-omk">
@@ -90,8 +91,14 @@ body.locked main{display:none}
     <div class="row"><button class="main" id="gg" hidden>Se connecter avec Google</button></div>
   </div>
 
+  <div id="p-cas" hidden>
+    <h2>Connexion CAS Paris 8</h2>
+    <p class="lead">Tu seras redirigé vers l’authentification de l’université Paris 8.</p>
+    <div class="row"><button class="main" id="casgo">Continuer vers Paris 8</button></div>
+  </div>
+
   <div class="row"><span id="idstate" class="lead">Identité : non connecté.</span><button id="idout" hidden>Se déconnecter</button></div>
-  <p class="soon"></p>
+  <p class="soon">e</p>
 </details>
 <div id="msg" role="status"></div>
 
@@ -294,8 +301,16 @@ $("#logout").onclick = () => {
 // L’adresse de l’API est choisie automatiquement : Omeka local si la page est ouverte sur localhost, base commune sinon.
 document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
   document.querySelectorAll(".tab").forEach(t => t.classList.toggle("on", t === b));
-  ["omk", "gh", "gg"].forEach(k => $("#p-" + k).hidden = ("tab-" + k) !== b.id);
+  ["omk", "gh", "gg", "cas"].forEach(k => $("#p-" + k).hidden = ("tab-" + k) !== b.id);
 });
+
+// CAS Paris 8 : redirection vers l’authentification de l’université, avec retour sur cette page
+const CAS_URL = "https://cas.univ-paris8.fr/cas/login";
+$("#casgo").onclick = () => location.assign(CAS_URL + "?service=" + encodeURIComponent(location.origin + location.pathname));
+if (new URLSearchParams(location.search).get("ticket")) {
+  history.replaceState(null, "", location.pathname);
+  say("Retour du CAS Paris 8 reçu. Le ticket n’est pas vérifié : la validation demande un serveur d’authentification.", "err");
+}
 
 lock();
 $("#base").value = location.hostname === "localhost" ? "http://localhost/omeka-s-4.2.1/omeka-s/api" : "https://humanum-p8.fr/omk_artificialinquiries/api";
