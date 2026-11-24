@@ -337,7 +337,7 @@ document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
 
 // CAS Paris 8 : redirection vers l’authentification de l’université, avec retour sur cette page
 const CAS_URL = "https://cas.univ-paris8.fr/cas/login";
-$("#casgo").onclick = () => location.assign(CAS_URL + "?service=" + encodeURIComponent(location.origin + location.pathname));
+$("#casgo").onclick = () => location.assign(CAS_URL + "?renew=true&service=" + encodeURIComponent(location.origin + location.pathname));
 $("#ro").onclick = async () => {
   say("Chargement des réflexions…");
   try {
