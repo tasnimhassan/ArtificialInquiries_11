@@ -142,7 +142,7 @@ const $ = s => document.querySelector(s);
 const WORKER = "https://artinq-relais.tiha31931.workers.dev";
 const PROXY = (location.hostname !== "localhost" && !WORKER.includes("VOTRE")) ? WORKER : "";
 const Q = {EVOLUTION: "How has your practice evolved?", CONSTANCE: "What aspects of your practice have remained consistent?"};
-const S = {p: {}, cls: 0, tpl: 0, editing: null, ready: false};
+const S = {p: {}, cls: 0, tpl: 0, editing: null, ready: false, token: null};
 // Chaque champ essaie d’abord le terme de la base commune, puis celui de la base locale.
 const CAND = {title: ["dcterms:title"], date: ["artinq:date", "artinq:dateSaisie"], type: ["artinq:type", "artinq:typeReflexion"], question: ["artinq:description", "artinq:question"], texte: ["artinq:texte"], version: ["artinq:version"]};
 const FIELDS = {};
@@ -163,6 +163,7 @@ function endpoint(path, params = {}) {
 }
 
 function friendly(s) {
+  if ((s === 401) && S.auth === "cas") return "Ta session CAS a expiré (1 heure). Reconnecte-toi avec le CAS Paris 8.";
   if (s === 401 || s === 403) return "Accès refusé : vérifie tes clés API ou tes droits.";
   if (s === 404) return "Élément introuvable.";
   if (s === 422) return "Les informations envoyées sont incomplètes ou invalides.";
@@ -175,7 +176,10 @@ async function api(path, method = "GET", body, params) {
   const opt = {method};
   const hd = {};
   if (body) { hd["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
-  if (PROXY) { hd["X-Omeka-Key-Identity"] = $("#kid").value; hd["X-Omeka-Key-Credential"] = $("#kcred").value; }
+  if (PROXY) {
+    if (S.auth === "cas" && S.token) hd["Authorization"] = "Bearer " + S.token; // session CAS : le Worker écrit avec les clés du projet
+    else { hd["X-Omeka-Key-Identity"] = $("#kid").value; hd["X-Omeka-Key-Credential"] = $("#kcred").value; }
+  }
   if (Object.keys(hd).length) opt.headers = hd;
   let r;
   try { r = await fetch(endpoint(path, params), opt); }
@@ -228,7 +232,7 @@ async function load() {
     const b = document.createElement("div"); b.className = "row";
     const e = document.createElement("button"); e.textContent = "Modifier"; e.onclick = () => edit(it);
     const x = document.createElement("button"); x.textContent = "Supprimer"; x.className = "del"; x.onclick = () => remove(it);
-    if (S.auth === "local") b.append(e, x);
+    if (S.auth === "local" || S.auth === "cas") b.append(e, x);
     d.append(h, m, p, b); box.append(d);
   });
 }
@@ -289,7 +293,7 @@ $("#login").onclick = async () => {
 };
 $("#logout").onclick = () => {
   sessionStorage.removeItem("omk"); $("#kid").value = ""; $("#kcred").value = ""; $("#omail").value = "";
-  S.auth = null; lock(); setWriteMode(false); S.ready = false; $("#list").innerHTML = '<p class="meta">Connectez-vous pour afficher les réflexions.</p>';
+  S.auth = null; S.token = null; lock(); setWriteMode(false); S.ready = false; $("#list").innerHTML = '<p class="meta">Connectez-vous pour afficher les réflexions.</p>';
   $("#conn").open = true; say("Déconnecté.");
 };
 
@@ -354,12 +358,12 @@ async function casReturn() {
     const r = await fetch(WORKER + "/cas/validate?ticket=" + encodeURIComponent(ticket) + "&service=" + encodeURIComponent(service));
     const d = await r.json();
     if (!d.ok) throw new Error(d.message || "Le CAS a refusé la connexion.");
-    S.auth = "cas"; setWriteMode(false);
-    await init(); await load(); unlock();
+    S.auth = "cas"; S.token = d.token;
+    await init(); await load(); unlock(); setWriteMode(true);
     $("#idstate").textContent = "Identité : CAS Paris 8 (" + d.user + ")";
     $("#conn").open = false;
-    say("Connecté avec le CAS Paris 8 : lecture seule. Ajoute tes clés API (onglet Omeka S) pour créer, modifier ou supprimer.", "ok");
-  } catch (e) { S.auth = null; lock(); say("Connexion CAS Paris 8 impossible : " + e.message, "err"); }
+    say("Connecté avec le CAS Paris 8 : tu peux créer, modifier et supprimer des réflexions.", "ok");
+  } catch (e) { S.auth = null; S.token = null; lock(); say("Connexion CAS Paris 8 impossible : " + e.message, "err"); }
 }
 
 lock(); setWriteMode(false);
