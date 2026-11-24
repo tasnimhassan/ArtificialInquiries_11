@@ -142,7 +142,8 @@ const $ = s => document.querySelector(s);
 const WORKER = "https://artinq-relais.tiha31931.workers.dev";
 const PROXY = (location.hostname !== "localhost" && !WORKER.includes("VOTRE")) ? WORKER : "";
 const Q = {EVOLUTION: "Comment votre pratique a-t-elle évolué ?", CONSTANCE: "Quels aspects de votre pratique sont restés constants ?"};
-const S = {p: {}, cls: 0, tpl: 0, editing: null, ready: false, token: null};
+const S = {p: {}, cls: 0, tpl: 0, editing: null, ready: false, token: null, fb: null};
+const canWrite = () => ["local", "cas", "github.com", "google.com", "firebase"].includes(S.auth);
 // Chaque champ essaie d’abord le terme de la base commune, puis celui de la base locale.
 const CAND = {title: ["dcterms:title"], date: ["artinq:date", "artinq:dateSaisie"], type: ["artinq:type", "artinq:typeReflexion"], question: ["artinq:description", "artinq:question"], texte: ["artinq:texte"], version: ["artinq:version"]};
 const FIELDS = {};
@@ -163,7 +164,8 @@ function endpoint(path, params = {}) {
 }
 
 function friendly(s) {
-  if ((s === 401) && S.auth === "cas") return "Ta session CAS a expiré (1 heure). Reconnecte-toi avec le CAS Paris 8.";
+  if (s === 401 && S.auth === "cas") return "Ta session CAS a expiré (1 heure). Reconnecte-toi avec le CAS Paris 8.";
+  if (s === 401 && canWrite() && S.auth !== "local") return "Connexion requise ou expirée. Reconnecte-toi.";
   if (s === 401 || s === 403) return "Accès refusé : vérifie tes clés API ou tes droits.";
   if (s === 404) return "Élément introuvable.";
   if (s === 422) return "Les informations envoyées sont incomplètes ou invalides.";
@@ -178,6 +180,7 @@ async function api(path, method = "GET", body, params) {
   if (body) { hd["Content-Type"] = "application/json"; opt.body = JSON.stringify(body); }
   if (PROXY) {
     if (S.auth === "cas" && S.token) hd["Authorization"] = "Bearer " + S.token; // session CAS : le Worker écrit avec les clés du projet
+    else if (S.fb && S.auth !== "local") hd["Authorization"] = "Bearer " + await S.fb.getIdToken(); // session Google / GitHub (jeton renouvelé automatiquement)
     else { hd["X-Omeka-Key-Identity"] = $("#kid").value; hd["X-Omeka-Key-Credential"] = $("#kcred").value; }
   }
   if (Object.keys(hd).length) opt.headers = hd;
@@ -241,7 +244,7 @@ async function load() {
     const b = document.createElement("div"); b.className = "row";
     const e = document.createElement("button"); e.textContent = "Modifier"; e.onclick = () => edit(it);
     const x = document.createElement("button"); x.textContent = "Supprimer"; x.className = "del"; x.onclick = () => remove(it);
-    if (S.auth === "local" || S.auth === "cas") b.append(e, x);
+    if (canWrite()) b.append(e, x);
     d.append(h, m, p, b); box.append(d);
   });
 }
@@ -329,12 +332,12 @@ $("#logout").onclick = () => {
     bar.textContent = u ? "Identité : " + (u.displayName || u.email || "connecté") : "Identité : non connecté.";
     if (u) {
       if (S.auth === "local") return;
-      S.auth = (u.providerData[0] && u.providerData[0].providerId) || "firebase"; setWriteMode(false);
+      S.auth = (u.providerData[0] && u.providerData[0].providerId) || "firebase"; S.fb = u; setWriteMode(true);
       const nom = S.auth === "github.com" ? "GitHub" : "Google";
       unlock();
-      try { if (!S.ready) await init(); await load(); say("Connecté avec " + nom + ". Pour créer, modifier ou supprimer, ajoute ta clé API dans le cadre Connexion.", "ok"); }
-      catch (e) { $("#conn").open = true; say("Connecté avec " + nom + ". Ajoute ta clé API dans le cadre Connexion pour afficher et modifier les réflexions.", "ok"); }
-    } else if (!["local", "cas", "readonly"].includes(S.auth)) { S.auth = null; lock(); }
+      try { if (!S.ready) await init(); await load(); $("#conn").open = false; say("Connecté avec " + nom + " : tu peux créer, modifier et supprimer des réflexions.", "ok"); }
+      catch (e) { $("#conn").open = true; say("Connecté avec " + nom + ", mais les réflexions n’ont pas pu être chargées : " + e.message, "err"); }
+    } else { S.fb = null; if (!["local", "cas", "readonly"].includes(S.auth)) { S.auth = null; lock(); setWriteMode(false); } }
   });
 })();
 
