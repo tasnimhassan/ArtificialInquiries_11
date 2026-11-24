@@ -50,6 +50,15 @@ body.locked main{display:none}
 #conn label{font-weight:700;color:var(--ink);font-size:1.05rem;margin:1rem 0 .4rem}
 #conn input{padding:.85rem 1rem;border-radius:6px;background:var(--card)}
 #conn .main{background:var(--nav);color:var(--navink);border-color:var(--nav);font-weight:700;border-radius:999px;padding:.8rem 1.6rem}
+
+#msg:not(:empty){margin:.75rem auto 0;width:min(68rem,calc(100% - 2rem));padding:.7rem 1rem;border:1px solid var(--line);border-left-width:5px;border-radius:8px;background:var(--card)}
+#msg.err{border-color:var(--bad)}#msg.ok{border-color:var(--ok)}
+.item{border:1px solid var(--line);border-radius:10px;padding:1rem;margin-bottom:.75rem;background:var(--bg)}
+.item:first-of-type{border-top:1px solid var(--line)}
+.item h3{font:600 1.1rem/1.3 Georgia,serif}
+section h2{padding-bottom:.5rem;border-bottom:2px solid var(--line)}
+button:disabled,input:disabled,textarea:disabled,select:disabled{opacity:.55;cursor:not-allowed}
+button:hover:not(:disabled){filter:brightness(.95)}
 </style>
 </head>
 <body>
@@ -69,14 +78,14 @@ body.locked main{display:none}
 
   <div id="p-omk">
     <h2>Connexion Omeka S</h2>
-    <p class="lead"> <strong></strong> </p>
+    <p class="lead">Saisis <strong>tes</strong> clés API Omeka (Omeka S → Utilisateurs → ton compte → Modifier → onglet « Clés API »).</p>
     <input id="base" type="hidden">
     <input id="omail" type="hidden">
     <label for="kid">key identity</label>
     <input id="kid" autocomplete="off">
     <label for="kcred">key credential</label>
     <input id="kcred" type="password" autocomplete="off">
-    <div class="row"><button class="main" id="login">Se connecter</button><button id="logout">Se déconnecter</button></div>
+    <div class="row"><button class="main" id="login">Se connecter</button><button type="button" id="ro">Voir sans clés (lecture seule)</button><button id="logout">Se déconnecter</button></div>
   </div>
 
   <div id="p-gh" hidden>
@@ -98,13 +107,13 @@ body.locked main{display:none}
   </div>
 
   <div class="row"><span id="idstate" class="lead">Identité : non connecté.</span><button id="idout" hidden>Se déconnecter</button></div>
-  <p class="soon">e</p>
 </details>
 <div id="msg" role="status"></div>
 
 <main>
   <section>
     <h2 id="ftitle">Nouvelle réflexion</h2>
+    <p id="writenote" class="lead"></p>
     <form id="form" autocomplete="off">
       <label for="title">Titre</label><input id="title" required>
       <label for="type">Type</label>
@@ -117,7 +126,7 @@ body.locked main{display:none}
     </form>
   </section>
   <section>
-    <h2>Mes réflexions</h2>
+    <h2>Réflexions de la base commune</h2>
     <div id="list"><p class="meta">Connectez-vous pour afficher les réflexions.</p></div>
   </section>
 </main>
@@ -138,6 +147,10 @@ const S = {p: {}, cls: 0, tpl: 0, editing: null, ready: false};
 const CAND = {title: ["dcterms:title"], date: ["artinq:date", "artinq:dateSaisie"], type: ["artinq:type", "artinq:typeReflexion"], question: ["artinq:description", "artinq:question"], texte: ["artinq:texte"], version: ["artinq:version"]};
 const FIELDS = {};
 
+function setWriteMode(on) {
+  document.querySelectorAll("#form input, #form select, #form textarea, #form button").forEach(el => el.disabled = !on);
+  $("#writenote").textContent = on ? "" : "Lecture seule. Ajoute tes clés API (onglet Omeka S) pour enregistrer, modifier ou supprimer.";
+}
 const lock = () => document.body.classList.add("locked");
 const unlock = () => document.body.classList.remove("locked");
 function say(t, cls) { const m = $("#msg"); m.textContent = t; m.className = cls || ""; }
@@ -149,6 +162,15 @@ function endpoint(path, params = {}) {
   return u;
 }
 
+function friendly(s) {
+  if (s === 401 || s === 403) return "Accès refusé : vérifie tes clés API ou tes droits.";
+  if (s === 404) return "Élément introuvable.";
+  if (s === 422) return "Les informations envoyées sont incomplètes ou invalides.";
+  if (s === 429) return "Trop de demandes en peu de temps. Réessaie dans un instant.";
+  if (s >= 500) return "Le serveur Omeka S rencontre un problème. Réessaie plus tard.";
+  return "Une erreur est survenue. Réessaie.";
+}
+
 async function api(path, method = "GET", body, params) {
   const opt = {method};
   const hd = {};
@@ -157,8 +179,8 @@ async function api(path, method = "GET", body, params) {
   if (Object.keys(hd).length) opt.headers = hd;
   let r;
   try { r = await fetch(endpoint(path, params), opt); }
-  catch (e) { throw new Error("la requête vers " + path + " est bloquée (réseau, CORS ou adresse)"); }
-  if (!r.ok) throw new Error(r.status + " " + r.statusText + (r.status === 403 || r.status === 401 ? " (clés refusées,identifiants non vérifiés à la connexion)" : ""));
+  catch (e) { console.error(path, e); throw Object.assign(new Error("Impossible de joindre le serveur. Vérifie ta connexion internet et ouvre la page depuis son adresse GitHub Pages, puis réessaie."), {status: 0}); }
+  if (!r.ok) throw Object.assign(new Error(friendly(r.status)), {status: r.status});
   const t = await r.text();
   return t ? JSON.parse(t) : null;
 }
@@ -206,7 +228,8 @@ async function load() {
     const b = document.createElement("div"); b.className = "row";
     const e = document.createElement("button"); e.textContent = "Modifier"; e.onclick = () => edit(it);
     const x = document.createElement("button"); x.textContent = "Supprimer"; x.className = "del"; x.onclick = () => remove(it);
-    b.append(e, x); d.append(h, m, p, b); box.append(d);
+    if (S.auth === "local") b.append(e, x);
+    d.append(h, m, p, b); box.append(d);
   });
 }
 
@@ -248,27 +271,25 @@ $("#type").onchange = () => { const q = $("#question"); if (!q.value || Object.v
 $("#fresh").onclick = resetForm;
 
 $("#login").onclick = async () => {
-  say("Connexion en cours…");
+  if (!$("#kid").value.trim() || !$("#kcred").value.trim()) return say("Renseigne tes deux clés API pour te connecter.", "err");
+  say("Vérification de tes clés…");
+  try { await api("/users", "GET", null, {per_page: 1}); } // refusé par Omeka si les clés sont fausses
+  catch (e) {
+    S.auth = null; lock(); setWriteMode(false);
+    return say(e.status === 401 || e.status === 403 ? "Clés API refusées. Vérifie ton key identity et ton key credential." : "Connexion impossible : " + e.message, "err");
+  }
   try {
-    await api("/users", "GET", null, {per_page: 1}); // refusé par Omeka si les clés sont fausses
+    S.auth = "local";
     await init(); await load();
     sessionStorage.setItem("omk", JSON.stringify({b: $("#base").value, i: $("#kid").value, c: $("#kcred").value, e: $("#omail").value}));
-    S.auth = "local"; unlock();
-    $("#conn").open = false; say("Connecté à Omeka S.", "ok");
-    const em = $("#omail").value.trim();
-    if (em) {
-      try {
-        const u = await api("/users", "GET", null, {email: em});
-        say(u.length ? "Connecté à Omeka S : compte " + em + "." : "Connecté à Omeka S, mais aucun compte avec l’e-mail " + em + " n’a été trouvé.", u.length ? "ok" : "err");
-      } catch (e) { say("Connecté à Omeka S (compte " + em + ", e-mail non vérifié).", "ok"); }
-    }
-  } catch (e) {
-    say("Connexion impossible : " + e.message + ".", "err");
-  }
+    unlock(); setWriteMode(true);
+    $("#conn").open = false;
+    say("Clés API validées : tu peux créer, modifier et supprimer.", "ok");
+  } catch (e) { S.auth = null; lock(); setWriteMode(false); say("Tes clés sont valides, mais les réflexions n’ont pas pu être chargées : " + e.message, "err"); }
 };
 $("#logout").onclick = () => {
   sessionStorage.removeItem("omk"); $("#kid").value = ""; $("#kcred").value = ""; $("#omail").value = "";
-  S.auth = null; lock(); S.ready = false; $("#list").innerHTML = '<p class="meta">Connectez-vous pour afficher les réflexions.</p>';
+  S.auth = null; lock(); setWriteMode(false); S.ready = false; $("#list").innerHTML = '<p class="meta">Connectez-vous pour afficher les réflexions.</p>';
   $("#conn").open = true; say("Déconnecté.");
 };
 
@@ -278,7 +299,12 @@ $("#logout").onclick = () => {
   if (typeof firebase === "undefined" || !FIREBASE_CONFIG.apiKey) { bar.textContent = "Identité : connexion Google et GitHub non configurée, seule la connexion par clés Omeka S est active."; return; }
   firebase.initializeApp(FIREBASE_CONFIG);
   const auth = firebase.auth();
-  const fail = e => { bar.textContent = "Connexion impossible : " + e.message; };
+  const fail = e => {
+    const c = e && e.code;
+    bar.textContent = c === "auth/popup-closed-by-user" ? "Fenêtre fermée avant la fin de la connexion." :
+      c === "auth/unauthorized-domain" ? "Cette adresse n’est pas autorisée pour la connexion Google ou GitHub. Préviens l’administratrice du projet." :
+      "La connexion a échoué. Réessaie.";
+  };
   const go = prov => auth.signInWithPopup(prov).catch(fail);
   const ids = ["gh", "gg"];
   ids.forEach(i => $("#" + i).hidden = false);
@@ -289,12 +315,13 @@ $("#logout").onclick = () => {
     ids.forEach(i => $("#" + i).hidden = !!u); $("#idout").hidden = !u;
     bar.textContent = u ? "Identité : " + (u.displayName || u.email || "connecté") : "Identité : non connecté.";
     if (u) {
-      S.auth = (u.providerData[0] && u.providerData[0].providerId) || "firebase";
+      if (S.auth === "local") return;
+      S.auth = (u.providerData[0] && u.providerData[0].providerId) || "firebase"; setWriteMode(false);
       const nom = S.auth === "github.com" ? "GitHub" : "Google";
       unlock();
       try { if (!S.ready) await init(); await load(); say("Connecté avec " + nom + ". Pour créer, modifier ou supprimer, ajoute ta clé API dans le cadre Connexion.", "ok"); }
       catch (e) { $("#conn").open = true; say("Connecté avec " + nom + ". Ajoute ta clé API dans le cadre Connexion pour afficher et modifier les réflexions.", "ok"); }
-    } else if (S.auth !== "local") { S.auth = null; lock(); }
+    } else if (!["local", "cas", "readonly"].includes(S.auth)) { S.auth = null; lock(); }
   });
 })();
 
@@ -307,16 +334,40 @@ document.querySelectorAll(".tab").forEach(b => b.onclick = () => {
 // CAS Paris 8 : redirection vers l’authentification de l’université, avec retour sur cette page
 const CAS_URL = "https://cas.univ-paris8.fr/cas/login";
 $("#casgo").onclick = () => location.assign(CAS_URL + "?service=" + encodeURIComponent(location.origin + location.pathname));
-if (new URLSearchParams(location.search).get("ticket")) {
+$("#ro").onclick = async () => {
+  say("Chargement des réflexions…");
+  try {
+    S.auth = "readonly"; await init(); await load();
+    unlock(); setWriteMode(false); $("#conn").open = false;
+    say("Lecture seule : ajoute tes clés API pour créer, modifier ou supprimer.", "ok");
+  } catch (e) { S.auth = null; lock(); say("Impossible d’afficher les réflexions : " + e.message, "err"); }
+};
+
+// Retour du CAS Paris 8 : le Worker vérifie le ticket auprès du serveur CAS
+async function casReturn() {
+  const ticket = new URLSearchParams(location.search).get("ticket");
+  if (!ticket) return;
+  const service = location.origin + location.pathname;
   history.replaceState(null, "", location.pathname);
-  say("Retour du CAS Paris 8 reçu. Le ticket n’est pas vérifié : la validation demande un serveur d’authentification.", "err");
+  say("Vérification de ta connexion CAS Paris 8…");
+  try {
+    const r = await fetch(WORKER + "/cas/validate?ticket=" + encodeURIComponent(ticket) + "&service=" + encodeURIComponent(service));
+    const d = await r.json();
+    if (!d.ok) throw new Error(d.message || "Le CAS a refusé la connexion.");
+    S.auth = "cas"; setWriteMode(false);
+    await init(); await load(); unlock();
+    $("#idstate").textContent = "Identité : CAS Paris 8 (" + d.user + ")";
+    $("#conn").open = false;
+    say("Connecté avec le CAS Paris 8 : lecture seule. Ajoute tes clés API (onglet Omeka S) pour créer, modifier ou supprimer.", "ok");
+  } catch (e) { S.auth = null; lock(); say("Connexion CAS Paris 8 impossible : " + e.message, "err"); }
 }
 
-lock();
+lock(); setWriteMode(false);
 $("#base").value = location.hostname === "localhost" ? "http://localhost/omeka-s-4.2.1/omeka-s/api" : "https://humanum-p8.fr/omk_artificialinquiries/api";
 
 try { const s = JSON.parse(sessionStorage.getItem("omk") || "null"); if (s) { $("#kid").value = s.i; $("#kcred").value = s.c; $("#omail").value = s.e || ""; $("#login").click(); } } catch (e) {}
 resetForm();
+casReturn();
 </script>
 </body>
 </html>
