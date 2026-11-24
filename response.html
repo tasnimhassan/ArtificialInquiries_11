@@ -191,6 +191,7 @@ async function api(path, method = "GET", body, params) {
       detail = j.message || (j.errors && (typeof j.errors === "string" ? j.errors : Object.values(j.errors).flat().map(x => typeof x === "string" ? x : JSON.stringify(x)).join(" ; "))) || "";
     } catch (e) {}
     console.error(method, path, r.status, detail);
+    if (r.status === 500 && /pas configuré pour l’écriture/.test(detail)) throw Object.assign(new Error("Le Worker Cloudflare n’a pas encore les clés Omeka du projet (secrets OMEKA_KEY_IDENTITY et OMEKA_KEY_CREDENTIAL). En attendant, utilise tes clés API dans l’onglet Omeka S."), {status: 500});
     throw Object.assign(new Error(friendly(r.status) + (detail ? " [" + r.status + " : " + detail + "]" : " [" + r.status + "]")), {status: r.status});
   }
   const t = await r.text();
