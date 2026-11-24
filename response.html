@@ -141,7 +141,7 @@ const $ = s => document.querySelector(s);
 // Adresse du Worker Cloudflare (relais vers l’Omeka commun). À remplacer par la tienne, par exemple https://artinq-relais.TON-COMPTE.workers.dev
 const WORKER = "https://artinq-relais.tiha31931.workers.dev";
 const PROXY = (location.hostname !== "localhost" && !WORKER.includes("VOTRE")) ? WORKER : "";
-const Q = {EVOLUTION: "How has your practice evolved?", CONSTANCE: "What aspects of your practice have remained consistent?"};
+const Q = {EVOLUTION: "Comment votre pratique a-t-elle évolué ?", CONSTANCE: "Quels aspects de votre pratique sont restés constants ?"};
 const S = {p: {}, cls: 0, tpl: 0, editing: null, ready: false, token: null};
 // Chaque champ essaie d’abord le terme de la base commune, puis celui de la base locale.
 const CAND = {title: ["dcterms:title"], date: ["artinq:date", "artinq:dateSaisie"], type: ["artinq:type", "artinq:typeReflexion"], question: ["artinq:description", "artinq:question"], texte: ["artinq:texte"], version: ["artinq:version"]};
