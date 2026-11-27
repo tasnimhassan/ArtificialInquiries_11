@@ -138,6 +138,7 @@ button:hover:not(:disabled){filter:brightness(.95)}
       <select id="type"><option value="EVOLUTION" data-i18n="o_evo">Évolution</option><option value="CONSTANCE" data-i18n="o_con">Constance</option></select>
       <label for="question" data-i18n="l_question">Question</label><input id="question">
       <label for="texte" data-i18n="l_texte">Votre réponse, avec des exemples précis</label><textarea id="texte" required></textarea>
+      <div class="row" style="margin-top:.4rem"><button type="button" id="dict">Dicter</button></div>
       <label for="date" data-i18n="l_date">Date de saisie</label><input id="date" type="date">
       <label for="version" data-i18n="l_version">Version</label><input id="version" type="number" min="1" value="1">
       <div class="row"><button class="main" type="submit" id="save">Enregistrer</button><button type="button" id="fresh">Nouvelle réflexion</button></div>
@@ -166,13 +167,13 @@ const T = {
     l_title: "Titre", l_type: "Type", l_question: "Question", l_texte: "Votre réponse, avec des exemples précis", l_date: "Date de saisie", l_version: "Version",
     o_evo: "Évolution", o_con: "Constance", h_list: "Réflexions de la base commune", h_survey: "Enquête en cours", l_enq: "Enquête", enqnew: "Nouvelle enquête", h_exos: "Exercices",
     h_new: "Nouvelle réflexion", h_edit: "Modifier la réflexion ", save: "Enregistrer", save2: "Enregistrer les modifications", fresh: "Nouvelle réflexion",
-    done: "Fait", todo: "À faire", open: "Ouvrir l’exercice",
+    done: "Fait", todo: "À faire", open: "Ouvrir l’exercice", dict: "Dicter", dictStop: "Arrêter la dictée", noEnq: "Aucune enquête : crées-en une",
     Q: {EVOLUTION: "Comment votre pratique a-t-elle évolué ?", CONSTANCE: "Quels aspects de votre pratique sont restés constants ?"}},
   en: {h1: "Ex11 – Tracking Shifts", intro: "Note how your practice with LLMs has evolved and what has remained constant. Each answer is saved as a “Reflection” item in Omeka S.",
     l_title: "Title", l_type: "Type", l_question: "Question", l_texte: "Your answer, with specific examples", l_date: "Entry date", l_version: "Version",
     o_evo: "Evolution", o_con: "Constancy", h_list: "Reflections in the shared database", h_survey: "Current survey", l_enq: "Survey", enqnew: "New survey", h_exos: "Exercises",
     h_new: "New reflection", h_edit: "Edit reflection ", save: "Save", save2: "Save changes", fresh: "New reflection",
-    done: "Done", todo: "To do", open: "Open the exercise",
+    done: "Done", todo: "To do", open: "Open the exercise", dict: "Dictate", dictStop: "Stop dictation", noEnq: "No survey yet: create one",
     Q: {EVOLUTION: "How has your practice evolved?", CONSTANCE: "What aspects of your practice have remained consistent?"}}
 };
 const S = {p: {}, cl: {}, cls: 0, tpl: 0, editing: null, ready: false, token: null, fb: null, lang: "fr", part: null, enq: null, acct: null};
@@ -187,6 +188,7 @@ function applyLang() {
   document.documentElement.lang = S.lang;
   document.querySelectorAll("[data-i18n]").forEach(el => { el.textContent = L()[el.dataset.i18n]; });
   $("#fresh").textContent = L().fresh;
+  if (!$("#dict").dataset.on) $("#dict").textContent = L().dict;
   $("#ftitle").textContent = S.editing ? L().h_edit + S.editing : L().h_new;
   $("#save").textContent = S.editing ? L().save2 : L().save;
   const q = $("#question");
@@ -339,6 +341,21 @@ $("#type").onchange = () => { const q = $("#question"); if (!q.value || allQ().i
 $("#fresh").onclick = resetForm;
 $("#lang").onchange = () => { S.lang = $("#lang").value; applyLang(); if (S.ready && !$("#survey").hidden) loadExos().catch(console.error); };
 
+// Dictée vocale : la transcription est écrite dans la réponse (l’audio n’est pas conservé)
+const SR = window.SpeechRecognition || window.webkitSpeechRecognition;
+if (!SR) $("#dict").hidden = true;
+else {
+  let rec = null;
+  $("#dict").onclick = () => {
+    if (rec) { rec.stop(); return; }
+    rec = new SR(); rec.lang = S.lang === "en" ? "en-US" : "fr-FR"; rec.continuous = true; rec.interimResults = false;
+    rec.onresult = e => { const t = [...e.results].slice(e.resultIndex).map(r => r[0].transcript).join(" "); $("#texte").value = ($("#texte").value + " " + t).trim(); };
+    rec.onerror = () => say("La dictée n’a pas fonctionné : vérifie l’autorisation du micro dans le navigateur.", "err");
+    rec.onend = () => { rec = null; delete $("#dict").dataset.on; $("#dict").textContent = L().dict; };
+    rec.start(); $("#dict").dataset.on = "1"; $("#dict").textContent = L().dictStop;
+  };
+}
+
 // ---------- Enquête : participant, enquête en cours, exercices ----------
 const today = () => { const d = new Date(); return String(d.getDate()).padStart(2, "0") + "-" + String(d.getMonth() + 1).padStart(2, "0") + "-" + d.getFullYear(); };
 async function sha8(s) { const d = await crypto.subtle.digest("SHA-256", new TextEncoder().encode(s)); return [...new Uint8Array(d)].slice(0, 4).map(b => b.toString(16).padStart(2, "0")).join(""); }
@@ -365,8 +382,10 @@ async function loadEnquetes() {
   const l = await api("/items", "GET", null, {resource_class_id: S.cl["artinq:Enquete"], per_page: 100, sort_by: "id", sort_order: "desc"});
   const sel = $("#enq"); sel.replaceChildren();
   const mine = it => S.part && (it["artinq:hasParticipant"] || []).some(v => Number(v.value_resource_id) === Number(S.part["o:id"]));
-  [...l.filter(mine), ...l.filter(i => !mine(i))].forEach(it => { const o = document.createElement("option"); o.value = it["o:id"]; o.textContent = it["o:title"]; sel.append(o); });
-  S.enq = sel.value ? Number(sel.value) : null;
+  const mes = l.filter(mine);
+  mes.forEach(it => { const o = document.createElement("option"); o.value = it["o:id"]; o.textContent = it["o:title"]; sel.append(o); });
+  if (!mes.length) { const o = document.createElement("option"); o.value = ""; o.textContent = L().noEnq; sel.append(o); }
+  S.enq = mes.length ? Number(mes[0]["o:id"]) : null;
 }
 $("#enq").onchange = () => { S.enq = Number($("#enq").value); loadExos().catch(console.error); };
 
